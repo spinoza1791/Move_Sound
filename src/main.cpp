@@ -39,7 +39,9 @@ int last_yRaw_high;
 int last_yRaw_low;
 int last_zRaw_high;
 int last_zRaw_low;
-int accel = 25;
+const int accel = 15;
+int wait_for_shake = 0;
+int max_wait = 10;
 
 // initialize minimum and maximum Raw Ranges for each axis
 int RawMin = 0;
@@ -99,11 +101,19 @@ void setup() {
 
   // Play a file in the background, REQUIRES interrupts!
   Serial.println(F("Playing full track 001"));
-  musicPlayer.playFullFile(wait_snd1);
+  musicPlayer.startPlayingFile(wait_snd1);
   randomSeed(analogRead(2));
+
+  //Read raw values
+  xRaw = ReadAxis(xInput);
+  yRaw = ReadAxis(yInput);
+  zRaw = ReadAxis(zInput);
+
 }
 
 void loop() {
+  delay(100);
+
   last_xRaw_high = xRaw + accel;
   last_xRaw_low = xRaw - accel;
   last_yRaw_high = yRaw + accel;
@@ -124,17 +134,31 @@ void loop() {
 
   if (xRaw < last_xRaw_low || xRaw > last_xRaw_high) {
     Serial.println("X has accelerated");
+    shaken = 1;
+    wait_for_shake = 0;
   }
-  if (yRaw < last_yRaw_low || yRaw > last_yRaw_high) {
+  else if (yRaw < last_yRaw_low || yRaw > last_yRaw_high) {
     Serial.println("Y has accelerated");
+    shaken = 1;
+    wait_for_shake = 0;
   }
-  if (zRaw < last_zRaw_low || zRaw > last_zRaw_high) {
+  else if (zRaw < last_zRaw_low || zRaw > last_zRaw_high) {
     Serial.println("Z has accelerated");
+    shaken = 1;
+    wait_for_shake = 0;
+  }
+  else {
+    Serial.println("no acceleration detected");
+    shaken = 0;
   }
 
-  delay(200);
+//delay(200);
+//Serial.println(shaken);
+//Serial.println(org_playing);
+Serial.println(wait_for_shake);
 
   if (shaken == 1 && org_playing == 0) {
+    Serial.println("Stopping Wait and Starting Random Org");
     shaken = 0;
     musicPlayer.stopPlaying();
     rndnum = random(1, 4);
@@ -150,8 +174,16 @@ void loop() {
     org_playing = 1;
   }
 
-  //Check if shaken
-
+  if (shaken == 0 && org_playing == 1) {
+    wait_for_shake++;
+  }
+  //Check if not shaken for 2 sec
+  if (wait_for_shake > max_wait) {
+    musicPlayer.stopPlaying();
+    musicPlayer. startPlayingFile(wait_snd1);
+    org_playing = 0;
+    wait_for_shake = 0;
+  }
 
   // Check if sounds have ended and reset flags if so
   if (musicPlayer.stopped()) {
@@ -160,5 +192,4 @@ void loop() {
       musicPlayer. startPlayingFile(wait_snd1);
     }
   }
-
 }
