@@ -26,8 +26,42 @@ int org_playing = 0;
 
 Adafruit_VS1053_FilePlayer musicPlayer = Adafruit_VS1053_FilePlayer(VS1053_RESET, VS1053_CS, VS1053_DCS, VS1053_DREQ, CARDCS);
 
+const int xInput = A2;
+const int yInput = A1;
+const int zInput = A0;
+
+int xRaw;
+int yRaw;
+int zRaw;
+int last_xRaw_high;
+int last_xRaw_low;
+int last_yRaw_high;
+int last_yRaw_low;
+int last_zRaw_high;
+int last_zRaw_low;
+int accel = 25;
+
+// initialize minimum and maximum Raw Ranges for each axis
+int RawMin = 0;
+int RawMax = 1023;
+
+// Take multiple samples to reduce noise
+const int sampleSize = 10;
+
+int ReadAxis(int axisPin)
+{
+  long reading = 0;
+  analogRead(axisPin);
+  delay(1);
+  for (int i = 0; i < sampleSize; i++)
+  {
+  reading += analogRead(axisPin);
+  }
+  return reading/sampleSize;
+}
+
 void setup() {
-  Serial.begin(115200);
+  Serial.begin(9600);
   pinMode(8, INPUT_PULLUP);
 
   // Wait for serial port to be opened, remove this line for 'standalone' operation
@@ -70,7 +104,35 @@ void setup() {
 }
 
 void loop() {
-  delay(1000);
+  last_xRaw_high = xRaw + accel;
+  last_xRaw_low = xRaw - accel;
+  last_yRaw_high = yRaw + accel;
+  last_yRaw_low = yRaw - accel;
+  last_zRaw_high = zRaw + accel;
+  last_zRaw_low = zRaw - accel;
+
+  //Read raw values
+  xRaw = ReadAxis(xInput);
+  yRaw = ReadAxis(yInput);
+  zRaw = ReadAxis(zInput);
+  Serial.print("X, Y, Z  :: ");
+  Serial.print(xRaw);
+  Serial.print(", ");
+  Serial.print(yRaw);
+  Serial.print(", ");
+  Serial.println(zRaw);
+
+  if (xRaw < last_xRaw_low || xRaw > last_xRaw_high) {
+    Serial.println("X has accelerated");
+  }
+  if (yRaw < last_yRaw_low || yRaw > last_yRaw_high) {
+    Serial.println("Y has accelerated");
+  }
+  if (zRaw < last_zRaw_low || zRaw > last_zRaw_high) {
+    Serial.println("Z has accelerated");
+  }
+
+  delay(200);
 
   if (shaken == 1 && org_playing == 0) {
     shaken = 0;
