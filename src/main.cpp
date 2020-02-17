@@ -18,8 +18,8 @@ const char *org_snd2 = "/org_002.mp3";
 const char *org_snd3 = "/org_003.mp3";
 const char *wait_snd1 = "/wait_001.mp3";
 
-//uint8_t volume_left = 0x00;
-//uint8_t volume_right = 0x00;
+uint8_t volume_left = 0x05;
+uint8_t volume_right = 0x05;
 long rndnum;
 int shaken = 0;
 int org_playing = 0;
@@ -87,7 +87,7 @@ void setup() {
   Serial.println("SD OK!");
 
   // Set volume for left, right channels. lower numbers == louder volume!
-  musicPlayer.setVolume(1,1);
+  musicPlayer.setVolume(volume_left,volume_right);
 
 #if defined(__AVR_ATmega32U4__)
   // Timer interrupts are not suggested, better to use DREQ interrupt!
